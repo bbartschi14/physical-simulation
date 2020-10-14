@@ -53,11 +53,13 @@ void SimulationApp::SetupScene() {
   point_light_node->GetTransform().SetPosition(glm::vec3(0.0f, 2.0f, 4.f));
   root.AddChild(std::move(point_light_node));
 
-  //auto circular_node = make_unique<CircularNode>(integration_step_, integrator_type_);
-  //root.AddChild(std::move(circular_node));
+  auto circular_node = make_unique<CircularNode>(integration_step_);
+  circular_node->GetTransform().SetPosition(glm::vec3(-5.5f, 0.0f, 0.0f));
+  root.AddChild(std::move(circular_node));
 
-  //auto pendulum_node = make_unique<PendulumNode>(integration_step_, integrator_type_);
-  //root.AddChild(std::move(pendulum_node));
+  auto pendulum_node = make_unique<PendulumNode>(integration_step_, integrator_type_);
+  pendulum_node->GetTransform().SetPosition(glm::vec3(-2.5f, 0.0f, 0.0f));
+  root.AddChild(std::move(pendulum_node));
 
   auto cloth_node = make_unique<ClothNode>(integration_step_, integrator_type_);
   root.AddChild(std::move(cloth_node));

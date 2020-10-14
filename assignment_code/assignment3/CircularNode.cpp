@@ -58,7 +58,7 @@ namespace GLOO {
 		}
 		else {
 			dt = integration_step_;
-			num_steps = std::fmod(rollover_time_, dt);
+			num_steps = int(rollover_time_ / dt);
 			rollover_time_ -= dt * num_steps;
 
 		}

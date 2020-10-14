@@ -75,6 +75,7 @@ namespace GLOO {
 		}
 
 		system_.FixParticle(0);
+		system_.PopulateSpringData();
 	}
 
 	void PendulumNode::Update(double delta_time) {
@@ -88,7 +89,7 @@ namespace GLOO {
 		}
 		else {
 			dt = integration_step_;
-			num_steps = std::fmod(rollover_time_, dt);
+			num_steps = int(rollover_time_ / dt);
 			rollover_time_ -= dt * num_steps;
 		}
 		for (int i = 0; i < num_steps; i++) {
