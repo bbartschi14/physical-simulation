@@ -31,30 +31,26 @@ namespace GLOO {
 
 				// Calculate spring forces
 				glm::vec3 total_spring_force{ 0.f,0.f,0.f };
-				for (Spring spring : springs_) {
-					bool use_force = false;
+				for (Spring spring : springs_per_particle_[i]) {
 					int end = 0;
 					if (spring.start == i) {
-						use_force = true;
 						end = spring.end;
 					}
 					else if (spring.end == i) {
-						use_force = true;
 						end = spring.start;
 					}
-
-					if (use_force) {
-						float k = spring.stiffness;
-						float r = spring.rest_length;
-						glm::vec3 d = state.positions[i] - state.positions[end];
-						float d_length = glm::length(d);
-						total_spring_force += glm::vec3(-k * (d_length - r) * (d / d_length));
-					}
+					float k = spring.stiffness;
+					float r = spring.rest_length;
+					glm::vec3 d = state.positions[i] - state.positions[end];
+					float d_length = glm::length(d);
+					total_spring_force += glm::vec3(-k * (d_length - r) * (d / d_length));
 				}
 				spring_force = total_spring_force;
 
 				// Sum forces and store acceleration
 				acceleration = (gravity_force + drag_force + spring_force) / particle_masses_[i];
+				
+
 				
 			}
 			accelerations.push_back(acceleration);
@@ -87,6 +83,16 @@ namespace GLOO {
 		}
 		else {
 			fixed_particles_[index] = true;
+		}
+	}
+
+	void PendulumSystem::PopulateSpringData() {
+		for (int i = 0; i < particle_masses_.size(); i++) {
+			springs_per_particle_.push_back(std::vector<Spring>());
+		}
+		for (Spring spring : springs_) {
+			springs_per_particle_[spring.start].push_back(spring);
+			springs_per_particle_[spring.end].push_back(spring);
 		}
 	}
 

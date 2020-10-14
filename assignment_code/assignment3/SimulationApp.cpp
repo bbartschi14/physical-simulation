@@ -56,7 +56,10 @@ void SimulationApp::SetupScene() {
   //auto circular_node = make_unique<CircularNode>(integration_step_, integrator_type_);
   //root.AddChild(std::move(circular_node));
 
-  auto pendulum_node = make_unique<PendulumNode>(integration_step_, integrator_type_);
-  root.AddChild(std::move(pendulum_node));
+  //auto pendulum_node = make_unique<PendulumNode>(integration_step_, integrator_type_);
+  //root.AddChild(std::move(pendulum_node));
+
+  auto cloth_node = make_unique<ClothNode>(integration_step_, integrator_type_);
+  root.AddChild(std::move(cloth_node));
 }
 }  // namespace GLOO

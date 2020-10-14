@@ -6,6 +6,7 @@
 #include "IntegratorType.hpp"
 #include "CircularNode.hpp"
 #include "PendulumNode.hpp"
+#include "ClothNode.hpp"
 
 namespace GLOO {
 class SimulationApp : public Application {

@@ -15,7 +15,9 @@ namespace GLOO {
         void AddParticle(float mass);
         void AddSpring(int start, int end, float rest_length, float stiffness);
         void FixParticle(int index);
+        void PopulateSpringData();
     private:
+        std::vector<std::vector<Spring>> springs_per_particle_;
         std::vector<Spring> springs_;
         std::vector<bool> fixed_particles_;
         std::vector<float> particle_masses_;
