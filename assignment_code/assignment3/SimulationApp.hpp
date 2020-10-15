@@ -20,6 +20,10 @@ class SimulationApp : public Application {
  private:
   IntegratorType integrator_type_;
   float integration_step_;
+  void DrawGUI() override;
+  ClothNode* cloth_node_;
+  std::shared_ptr<ShaderProgram> shader_;
+
 };
 }  // namespace GLOO
 

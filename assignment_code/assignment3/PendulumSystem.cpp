@@ -7,22 +7,39 @@ namespace GLOO {
 		// Constructor
 		gravity_ = gravity;
 		drag_ = drag;
+		wind_on_ = false;
+		wind_scalar_ = 5.0f;
 	}
 
 	ParticleState PendulumSystem::ComputeTimeDerivative(const ParticleState& state, float time) const {
 		std::vector<glm::vec3> accelerations;
+		std::vector<glm::vec3> velocities;
 
 		glm::vec3 gravity_force;
 		glm::vec3 drag_force;
 		glm::vec3 spring_force;
 		glm::vec3 acceleration;
+		glm::vec3 velocity;
+
+		glm::vec3 wind;
+
+		if (wind_on_) {
+			float windStrength = cos(time / 1) * wind_scalar_;
+			wind = glm::normalize(glm::vec3(sin(time / 2), sin(time / 1), cos(time / 3))) * windStrength;
+			//std::cout << wind.x << " " << wind.y << " " << wind.z << std::endl;
+		}
+		else {
+			wind = glm::vec3(0.f);
+		}
 
 		for (int i = 0; i < state.positions.size(); i++) {
 			if (fixed_particles_[i]) {
 				// We use a zero acceleration to represent a fixed position particle
+				velocity = glm::vec3(0.f);
 				acceleration = glm::vec3(0.f, 0.f, 0.f);
 			}
 			else {
+				velocity = state.velocities[i];
 				// Calculate gravity forces
 				gravity_force = glm::vec3(particle_masses_[i] * gravity_);
 
@@ -48,15 +65,16 @@ namespace GLOO {
 				spring_force = total_spring_force;
 
 				// Sum forces and store acceleration
-				acceleration = (gravity_force + drag_force + spring_force) / particle_masses_[i];
+				acceleration = (gravity_force + drag_force + spring_force + wind) / particle_masses_[i];
 				
 
 				
 			}
+			velocities.push_back(velocity);
 			accelerations.push_back(acceleration);
 			
 		}
-		ParticleState derived_state{ state.velocities, accelerations};
+		ParticleState derived_state{ velocities, accelerations};
 		return derived_state;
 	}
 

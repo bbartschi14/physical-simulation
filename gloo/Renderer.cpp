@@ -20,7 +20,7 @@ Renderer::Renderer(Application& application) : application_(application) {
 }
 
 void Renderer::SetRenderingOptions() const {
-  GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+  GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f,0.0f));
 
   // Enable depth test.
   GL_CHECK(glEnable(GL_DEPTH_TEST));
