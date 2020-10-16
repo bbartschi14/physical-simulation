@@ -13,6 +13,7 @@ enum class ComponentType {
   Material,
   Camera,
   Light,
+  Texture,
 };
 
 template <typename T>

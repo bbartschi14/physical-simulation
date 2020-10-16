@@ -9,6 +9,8 @@
 #include "gloo/components/LightComponent.hpp"
 #include "gloo/components/RenderingComponent.hpp"
 #include "gloo/components/MaterialComponent.hpp"
+#include "gloo/components/TextureComponent.hpp"
+
 #include "gloo/SceneNode.hpp"
 #include "gloo/lights/AmbientLight.hpp"
 #include "gloo/lights/PointLight.hpp"
@@ -34,6 +36,7 @@ void PhongShader::AssociateVertexArray(VertexArray& vertex_array) const {
     vertex_array.LinkTexCoordBuffer(GetAttributeLocation("vertex_tex_coord"));
   }
 }
+
 
 void PhongShader::SetTargetNode(const SceneNode& node,
                                 const glm::mat4& model_matrix) const {
@@ -61,6 +64,8 @@ void PhongShader::SetTargetNode(const SceneNode& node,
   SetUniform("material.diffuse", material_ptr->GetDiffuseColor());
   SetUniform("material.specular", material_ptr->GetSpecularColor());
   SetUniform("material.shininess", material_ptr->GetShininess());
+
+
 
 }
 

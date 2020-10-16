@@ -14,6 +14,9 @@ class VertexObject {
   // Vertex buffers are created in a lazy manner in the following Update*.
   void UpdatePositions(std::unique_ptr<PositionArray> positions);
   void UpdateNormals(std::unique_ptr<NormalArray> normals);
+  void UpdateTangents(std::unique_ptr<TangentArray> tangents);
+  void UpdateBitangents(std::unique_ptr<BitangentArray> bitangents);
+
   void UpdateColors(std::unique_ptr<ColorArray> colors);
   void UpdateTexCoord(std::unique_ptr<TexCoordArray> tex_coords);
   void UpdateIndices(std::unique_ptr<IndexArray> indices);
@@ -24,6 +27,14 @@ class VertexObject {
 
   bool HasNormals() const {
     return normals_ != nullptr;
+  }
+
+  bool HasTangents() const {
+      return tangents_ != nullptr;
+  }
+
+  bool HasBitangents() const {
+      return bitangents_ != nullptr;
   }
 
   bool HasColors() const {
@@ -48,6 +59,18 @@ class VertexObject {
     if (normals_ == nullptr)
       throw std::runtime_error("No normal in VertexObject!");
     return *normals_;
+  }
+
+  const TangentArray& GetTangents() const {
+      if (tangents_ == nullptr)
+          throw std::runtime_error("No tangents in VertexObject!");
+      return *tangents_;
+  }
+
+  const BitangentArray& GetBitangents() const {
+      if (bitangents_ == nullptr)
+          throw std::runtime_error("No bitangents in VertexObject!");
+      return *bitangents_;
   }
 
   const ColorArray& GetColors() const {
@@ -81,6 +104,9 @@ class VertexObject {
   // Owner of vertex data.
   std::unique_ptr<PositionArray> positions_;
   std::unique_ptr<NormalArray> normals_;
+  std::unique_ptr<TangentArray> tangents_;
+  std::unique_ptr<BitangentArray> bitangents_;
+
   std::unique_ptr<ColorArray> colors_;
   std::unique_ptr<TexCoordArray> tex_coords_;
   std::unique_ptr<IndexArray> indices_;

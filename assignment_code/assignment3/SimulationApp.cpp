@@ -8,6 +8,7 @@
 #include "gloo/components/CameraComponent.hpp"
 #include "gloo/components/LightComponent.hpp"
 #include "gloo/components/MaterialComponent.hpp"
+#include "gloo/components/TextureComponent.hpp"
 #include "gloo/MeshLoader.hpp"
 #include "gloo/lights/PointLight.hpp"
 #include "gloo/lights/AmbientLight.hpp"
@@ -54,11 +55,12 @@ void SimulationApp::SetupScene() {
   point_light->SetDiffuseColor(glm::vec3(0.8f, 0.8f, 0.8f));
   point_light->SetSpecularColor(glm::vec3(1.0f, 1.0f, 1.0f));
   //point_light->SetAttenuation(glm::vec3(1.0f, 0.09f, 0.032f));
-  point_light->SetAttenuation(glm::vec3(1.0f, 0.05f, 0.002f));
+  point_light->SetAttenuation(glm::vec3(0.75f, 0.0001f, 0.0001f));
 
   auto point_light_node = make_unique<SceneNode>();
   point_light_node->CreateComponent<LightComponent>(point_light);
-  point_light_node->GetTransform().SetPosition(glm::vec3(2.0f, 10.0f, 10.f));
+  point_light_node->GetTransform().SetPosition(glm::vec3(7.0f, 7.0f, 7.f));
+  point_light_node_ = point_light_node.get();
   root.AddChild(std::move(point_light_node));
 
  
@@ -84,6 +86,7 @@ void SimulationApp::SetupScene() {
       std::make_shared<Material>(Material::GetDefault()));
   ground_node->GetComponentPtr<MaterialComponent>()->GetMaterial().SetDiffuseColor(ground_color);
   ground_node->GetComponentPtr<MaterialComponent>()->GetMaterial().SetAmbientColor(ground_color);
+  ground_node->CreateComponent<TextureComponent>(std::make_shared<Texture>("grass.png", 10.f));
   ground_node->GetTransform().SetPosition(glm::vec3(0.f,-12.0f,0.f));
   float pi = atan(1) * 4;
   ground_node->GetTransform().SetRotation(glm::vec3(1.0f, 0.f, 0.f), pi/2);
@@ -121,6 +124,19 @@ void SimulationApp::DrawGUI() {
         float wind_strength = cloth_node_->GetWindStrength();
         ImGui::SliderFloat("Wind Strength", &wind_strength, 1.f, 20.f);
         cloth_node_->SetWindStrength(wind_strength);
+    }
+
+    if (ImGui::Button("Toggle Diffuse Map")) {
+        cloth_node_->ToggleClothDiffuse();
+    }
+    if (ImGui::Button("Toggle Normal Map")) {
+        cloth_node_->ToggleClothNormal();
+    }
+    if (ImGui::Button("Toggle Visualize Normals")) {
+        cloth_node_->ToggleClothNormalsVis();
+    }
+    if (ImGui::Button("Next map")) {
+        cloth_node_->NextTexture();
     }
     ImGui::End();
     }

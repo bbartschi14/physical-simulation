@@ -22,6 +22,7 @@ class SimulationApp : public Application {
   float integration_step_;
   void DrawGUI() override;
   ClothNode* cloth_node_;
+  SceneNode* point_light_node_;
   std::shared_ptr<ShaderProgram> shader_;
 
 };

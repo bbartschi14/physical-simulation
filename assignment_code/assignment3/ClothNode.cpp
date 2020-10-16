@@ -3,6 +3,8 @@
 #include "gloo/components/RenderingComponent.hpp"
 #include "gloo/components/ShadingComponent.hpp"
 #include "gloo/components/MaterialComponent.hpp"
+#include "gloo/components/TextureComponent.hpp"
+
 #include "gloo/debug/PrimitiveFactory.hpp"
 #include "gloo/shaders/PhongShader.hpp"
 #include "IntegratorFactory.hpp"
@@ -136,6 +138,9 @@ namespace GLOO {
 		mesh_node->GetComponentPtr<MaterialComponent>()->GetMaterial().SetDiffuseColor(mesh_color);
 		mesh_node->GetComponentPtr<MaterialComponent>()->GetMaterial().SetAmbientColor(mesh_color);
 
+		mesh_node->CreateComponent<TextureComponent>(std::make_shared<Texture>(diffuse_maps_[0],1.f));
+		mesh_node->GetComponentPtr<TextureComponent>()->GetTexture().SetNormalMap(normal_maps_[0]);
+
 		auto indices = make_unique<IndexArray>();
 		for (int col = 0; col < cloth_size_; col++) {
 			for (int row = 0; row < cloth_size_; row++) {
@@ -163,12 +168,19 @@ namespace GLOO {
 		}
 		cloth_mesh_->UpdateTexCoord(std::move(tex_coords));
 
+		
+
 
 		DrawClothPositions();
 		FindIncidentTriangles();
 		CreateNormalLines();
+		CreateTangentLines();
 		UpdateClothNormals();
+		UpdateClothTangents();
+		
+
 		auto& rc = mesh_node->CreateComponent<RenderingComponent>(cloth_mesh_);
+
 		rc.SetDrawMode(DrawMode::Triangles);
 		cloth_mesh_node_ = mesh_node.get();
 
@@ -196,6 +208,7 @@ namespace GLOO {
 				if (wireframe_on_) { ToggleWireframe(); TogglePause(); }
 				ToggleNormals();
 				UpdateClothNormals();
+				UpdateClothTangents();
 				TogglePause();
 				
 				
@@ -239,7 +252,7 @@ namespace GLOO {
 
 				if (ball_collision_) {
 					glm::vec3 ball_pos = ball_ptr_->GetTransform().GetPosition();
-					float eps = .1f;
+					float eps = .12f;
 					for (int j = 0; j < state_.positions.size(); j++) {
 
 						glm::vec3 diff = state_.positions[j] - ball_pos;
@@ -279,6 +292,7 @@ namespace GLOO {
 			}
 			DrawClothPositions();
 			UpdateClothNormals();
+			UpdateClothTangents();
 		}
 		
 	}
@@ -394,6 +408,70 @@ namespace GLOO {
 		
 	}
 
+	void ClothNode::UpdateClothTangents() {
+		auto indices2 = cloth_mesh_->GetIndices();
+		auto positions = cloth_mesh_->GetPositions();
+		auto uvs = cloth_mesh_->GetTexCoords();
+
+		auto tangents = make_unique<TangentArray>();
+
+		for (int i = 0; i < positions.size(); i++) {
+			tangents->push_back(glm::vec3(0.f));
+		}
+		for (int i = 0; i < indices2.size() - 2; i+=3) {
+			int pos0 = indices2[i];
+			int pos1 = indices2[i + 1];
+			int pos2 = indices2[i + 2];
+
+			glm::vec3 v0 = positions[pos0];
+			glm::vec3 v1 = positions[pos1];
+			glm::vec3 v2 = positions[pos2];
+
+			glm::vec3 edge1 = v1 - v0;
+			glm::vec3 edge2 = v2 - v0;
+
+			float deltaU1 = uvs[pos1].x - uvs[pos0].x;
+			float deltaV1 = uvs[pos1].y - uvs[pos0].y;
+			float deltaU2 = uvs[pos2].x - uvs[pos0].x;
+			float deltaV2 = uvs[pos2].y - uvs[pos0].y;
+
+			float f = 1.0f / (deltaU1 * deltaV2 - deltaU2 * deltaV1);
+
+			glm::vec3 tangent, bitangent;
+
+			tangent.x = f * (deltaV2 * edge1.x - deltaV1 * edge2.x);
+			tangent.y = f * (deltaV2 * edge1.y - deltaV1 * edge2.y);
+			tangent.z = f * (deltaV2 * edge1.z - deltaV1 * edge2.z);
+
+			tangents->at(pos0) += tangent;
+			tangents->at(pos1) += tangent;
+			tangents->at(pos2) += tangent;
+
+		}
+
+		for (int i = 0; i < positions.size(); i++) {
+			tangents->at(i) = glm::normalize(tangents->at(i));
+		}
+
+
+		cloth_mesh_->UpdateTangents(std::move(tangents));
+
+		auto tangents2 = cloth_mesh_->GetTangents();
+		float normal_size = .5f;
+
+		if (normals_on_) {
+			for (int normal_index = 0; normal_index < tangents_ptrs_.size(); normal_index++) {
+				auto positions = make_unique<PositionArray>();
+				positions->push_back(state_.positions[normal_index]);
+				positions->push_back((state_.positions[normal_index] + tangents2[normal_index] * normal_size));
+				tangents_ptrs_[normal_index]->GetComponentPtr<RenderingComponent>()->GetVertexObjectPtr()->UpdatePositions(std::move(positions));
+
+
+			}
+		}
+
+	}
+
 	glm::vec3 ClothNode::FindTriNorm(glm::vec3 a, glm::vec3 b, glm::vec3 c) {
 		glm::vec3 u = b - a;
 		glm::vec3 v = c - a;
@@ -434,6 +512,7 @@ namespace GLOO {
 		for (auto ptr : line_ptrs_) {
 			ptr->SetActive(wireframe_on_);
 		}
+
 		cloth_mesh_node_->SetActive(!wireframe_on_);
 		
 	}
@@ -466,9 +545,36 @@ namespace GLOO {
 		}
 		
 	}
+
+	void ClothNode::CreateTangentLines() {
+		for (int i = 0; i < state_.positions.size(); i++) {
+			auto line = std::make_shared<VertexObject>();
+			auto line_shader = std::make_shared<SimpleShader>();
+			auto indices = IndexArray({ 0,1 });
+			line->UpdateIndices(make_unique<IndexArray>(indices));
+			auto positions = PositionArray({ glm::vec3(0.f) , glm::vec3(0.f) });
+			line->UpdatePositions(make_unique<PositionArray>(positions));
+
+			auto line_node = make_unique<SceneNode>();
+			line_node->CreateComponent<ShadingComponent>(line_shader);
+			auto& rc_line = line_node->CreateComponent<RenderingComponent>(line);
+			rc_line.SetDrawMode(DrawMode::Lines);
+			auto color = glm::vec3(1.f, 0.f, 0.f);
+			auto material = std::make_shared<Material>(color, color, color, 0.0f);
+			line_node->CreateComponent<MaterialComponent>(material);
+			tangents_ptrs_.push_back(line_node.get());
+
+			AddChild(std::move(line_node));
+			tangents_ptrs_.back()->SetActive(false);
+		}
+
+	}
 	void ClothNode::ToggleNormals() {
 		normals_on_ = !normals_on_;
 		for (auto ptr : normals_ptrs_) {
+			ptr->SetActive(normals_on_);
+		}
+		for (auto ptr : tangents_ptrs_) {
 			ptr->SetActive(normals_on_);
 		}
 	}

@@ -29,16 +29,25 @@ class VertexArray : public IBindable {
 
   void CreatePositionBuffer();
   void CreateNormalBuffer();
+  void CreateTangentBuffer();
+  void CreateBitangentBuffer();
+
   void CreateColorBuffer();
   void CreateTexCoordBuffer();
   void CreateIndexBuffer();
   void UpdatePositions(const PositionArray& positions) const;
   void UpdateNormals(const NormalArray& normals) const;
+  void UpdateTangents(const TangentArray& tangents) const;
+  void UpdateBitangents(const BitangentArray& bitangents) const;
+
   void UpdateColors(const ColorArray& colors) const;
   void UpdateTexCoords(const TexCoordArray& tex_coords) const;
   void UpdateIndices(const IndexArray& indices) const;
   void LinkPositionBuffer(GLuint attr_idx) const;
   void LinkNormalBuffer(GLuint attr_idx) const;
+  void LinkTangentBuffer(GLuint attr_idx) const;
+  void LinkBitangentBuffer(GLuint attr_idx) const;
+
   void LinkColorBuffer(GLuint attr_idx) const;
   void LinkTexCoordBuffer(GLuint attr_idx) const;
 
@@ -48,6 +57,14 @@ class VertexArray : public IBindable {
 
   bool HasNormalBuffer() const {
     return normal_buf_ != nullptr;
+  }
+
+  bool HasTangentBuffer() const {
+      return tangent_buf_ != nullptr;
+  }
+
+  bool HasBitangentBuffer() const {
+      return bitangent_buf_ != nullptr;
   }
 
   bool HasColorBuffer() const {
@@ -71,12 +88,18 @@ class VertexArray : public IBindable {
   // Buffers are invisible to the outside.
   using PositionBuffer = VertexBuffer<glm::vec3, GL_ARRAY_BUFFER>;
   using NormalBuffer = VertexBuffer<glm::vec3, GL_ARRAY_BUFFER>;
+  using TangentBuffer = VertexBuffer<glm::vec3, GL_ARRAY_BUFFER>;
+  using BitangentBuffer = VertexBuffer<glm::vec3, GL_ARRAY_BUFFER>;
+
   using ColorBuffer = VertexBuffer<glm::vec4, GL_ARRAY_BUFFER>;
   using TexCoordBuffer = VertexBuffer<glm::vec2, GL_ARRAY_BUFFER>;
   using IndexBuffer = VertexBuffer<unsigned int, GL_ELEMENT_ARRAY_BUFFER>;
 
   std::unique_ptr<PositionBuffer> pos_buf_;
   std::unique_ptr<NormalBuffer> normal_buf_;
+  std::unique_ptr<TangentBuffer> tangent_buf_;
+  std::unique_ptr<BitangentBuffer> bitangent_buf_;
+
   std::unique_ptr<ColorBuffer> color_buf_;
   std::unique_ptr<TexCoordBuffer> tex_coord_buf_;
   std::unique_ptr<IndexBuffer> idx_buf_;

@@ -22,6 +22,8 @@ VertexArray::VertexArray(VertexArray&& other) noexcept {
 
   pos_buf_ = std::move(other.pos_buf_);
   normal_buf_ = std::move(other.normal_buf_);
+  tangent_buf_ = std::move(other.tangent_buf_);
+  bitangent_buf_ = std::move(other.bitangent_buf_);
   color_buf_ = std::move(other.color_buf_);
   tex_coord_buf_ = std::move(other.tex_coord_buf_);
   idx_buf_ = std::move(other.idx_buf_);
@@ -35,6 +37,8 @@ VertexArray& VertexArray::operator=(VertexArray&& other) noexcept {
 
   pos_buf_ = std::move(other.pos_buf_);
   normal_buf_ = std::move(other.normal_buf_);
+  tangent_buf_ = std::move(other.tangent_buf_);
+  bitangent_buf_ = std::move(other.bitangent_buf_);
   color_buf_ = std::move(other.color_buf_);
   tex_coord_buf_ = std::move(other.tex_coord_buf_);
   idx_buf_ = std::move(other.idx_buf_);
@@ -59,6 +63,14 @@ void VertexArray::CreateNormalBuffer() {
   normal_buf_ = make_unique<NormalBuffer>(GL_STATIC_DRAW);
 }
 
+void VertexArray::CreateTangentBuffer() {
+    tangent_buf_ = make_unique<TangentBuffer>(GL_STATIC_DRAW);
+}
+
+void VertexArray::CreateBitangentBuffer() {
+    bitangent_buf_ = make_unique<BitangentBuffer>(GL_STATIC_DRAW);
+}
+
 void VertexArray::CreateColorBuffer() {
   color_buf_ = make_unique<ColorBuffer>(GL_STATIC_DRAW);
 }
@@ -80,6 +92,14 @@ void VertexArray::UpdatePositions(const PositionArray& positions) const {
 
 void VertexArray::UpdateNormals(const NormalArray& normals) const {
   normal_buf_->Update(normals);
+}
+
+void VertexArray::UpdateTangents(const TangentArray& tangents) const {
+    tangent_buf_->Update(tangents);
+}
+
+void VertexArray::UpdateBitangents(const BitangentArray& bitangents) const {
+    bitangent_buf_->Update(bitangents);
 }
 
 void VertexArray::UpdateColors(const ColorArray& colors) const {
@@ -108,6 +128,22 @@ void VertexArray::LinkNormalBuffer(GLuint attr_idx) const {
   // The line below attaches the vertex buffer to the VAO.
   GL_CHECK(glVertexAttribPointer(attr_idx, 3, GL_FLOAT, GL_FALSE, 0, 0));
   GL_CHECK(glEnableVertexAttribArray(attr_idx));
+}
+
+void VertexArray::LinkTangentBuffer(GLuint attr_idx) const {
+    BindGuard vao_bg(this);
+    BindGuard buf_bg(tangent_buf_.get());
+    // The line below attaches the vertex buffer to the VAO.
+    GL_CHECK(glVertexAttribPointer(attr_idx, 3, GL_FLOAT, GL_FALSE, 0, 0));
+    GL_CHECK(glEnableVertexAttribArray(attr_idx));
+}
+
+void VertexArray::LinkBitangentBuffer(GLuint attr_idx) const {
+    BindGuard vao_bg(this);
+    BindGuard buf_bg(bitangent_buf_.get());
+    // The line below attaches the vertex buffer to the VAO.
+    GL_CHECK(glVertexAttribPointer(attr_idx, 3, GL_FLOAT, GL_FALSE, 0, 0));
+    GL_CHECK(glEnableVertexAttribArray(attr_idx));
 }
 
 void VertexArray::LinkColorBuffer(GLuint attr_idx) const {

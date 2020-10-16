@@ -9,6 +9,8 @@
 #include "gloo/components/LightComponent.hpp"
 #include "gloo/components/RenderingComponent.hpp"
 #include "gloo/components/MaterialComponent.hpp"
+#include "gloo/components/TextureComponent.hpp"
+
 #include "gloo/SceneNode.hpp"
 #include "gloo/lights/AmbientLight.hpp"
 #include "gloo/lights/PointLight.hpp"
@@ -34,6 +36,10 @@ void CheckerShader::AssociateVertexArray(VertexArray& vertex_array) const {
   if (vertex_array.HasTexCoordBuffer()) {
     vertex_array.LinkTexCoordBuffer(GetAttributeLocation("vertex_tex_coord"));
   }
+  if (vertex_array.HasTangentBuffer()) {
+      vertex_array.LinkTangentBuffer(GetAttributeLocation("vertex_tangent"));
+  }
+  
 }
 
 void CheckerShader::SetTargetNode(const SceneNode& node,
@@ -69,6 +75,39 @@ void CheckerShader::SetTargetNode(const SceneNode& node,
   SetUniform("material2.specular", color2);
   SetUniform("material2.shininess", 10.0f);
 
+  TextureComponent* texture_component_ptr =
+      node.GetComponentPtr<TextureComponent>();
+
+  if (texture_component_ptr != nullptr && texture_component_ptr->GetTexture().DiffuseOn()) {
+
+      unsigned int index = texture_component_ptr->GetTexture().GetTextureIndex();
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, index);
+      SetUniform("tex.map", 0);
+      SetUniform("tex.texture_on", true);
+      SetUniform("tex.tile_size", texture_component_ptr->GetTexture().GetTileSize());
+      
+  }
+  else {
+      SetUniform("tex.texture_on", false);
+  }
+  if (texture_component_ptr != nullptr && texture_component_ptr->GetTexture().HasNormal()) {
+          //std::cout << "Normal found" << std::endl;
+          glActiveTexture(GL_TEXTURE1);
+          glBindTexture(GL_TEXTURE_2D, texture_component_ptr->GetTexture().GetNormalIndex());
+          SetUniform("tex.normal_map", 1);
+          SetUniform("tex.normal_on", true);
+  }
+  else {
+      SetUniform("tex.normal_on", false);
+  }
+  if (texture_component_ptr != nullptr && texture_component_ptr->GetTexture().VisualizeNormals()) {
+      SetUniform("tex.visualize_normals", true);
+  }
+  else {
+      SetUniform("tex.visualize_normals", false);
+  }
+  
 }
 
 void CheckerShader::SetCamera(const CameraComponent& camera) const {

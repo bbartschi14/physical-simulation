@@ -5,6 +5,7 @@
 #include "ParticleState.hpp"
 #include "PendulumSystem.hpp"
 #include "ForwardEulerIntegrator.hpp"
+#include "gloo/components/TextureComponent.hpp"
 #include "gloo/shaders/ShaderProgram.hpp"
 #include "gloo/VertexObject.hpp"
 
@@ -57,14 +58,36 @@ namespace GLOO {
                 pinned_ = true;
             }
         } 
+        void ToggleClothNormal() {
+            cloth_mesh_node_->GetComponentPtr<TextureComponent>()->GetTexture().ToggleNormal();
+        }
+        void ToggleClothDiffuse() {
+            cloth_mesh_node_->GetComponentPtr<TextureComponent>()->GetTexture().ToggleDiffuse();
+        }
+        void ToggleClothNormalsVis() {
+            cloth_mesh_node_->GetComponentPtr<TextureComponent>()->GetTexture().ToggleVisualizeNormals();
+        }
+        void NextTexture() {
+            if (texture_index_ == diffuse_maps_.size() - 1) {
+                texture_index_ = -1;
+            }
+            texture_index_ += 1;
+            cloth_mesh_node_->GetComponentPtr<TextureComponent>()->GetTexture().SetDiffuseMap(diffuse_maps_[texture_index_]);
+            cloth_mesh_node_->GetComponentPtr<TextureComponent>()->GetTexture().SetNormalMap(normal_maps_[texture_index_]);
+
+        }
     private:
         void ResetSystem();
         int IndexOf(int row, int col);
         void CreateSpring(int i, int j, float rest_length, float stiffness, bool render);
         void DrawClothPositions();
         void CreateNormalLines();
+        void CreateTangentLines();
+
         void DrawWireframe();
         void UpdateClothNormals();
+        void UpdateClothTangents();
+
         void FixCorners();
         void ReleaseCorners() {
             system_.ReleaseParticle(IndexOf(0, 0));
@@ -89,6 +112,8 @@ namespace GLOO {
         float ground_height_ = -12.0;
         std::vector<SceneNode*> sphere_ptrs_;
         std::vector<SceneNode*> line_ptrs_;
+        std::vector<SceneNode*> tangents_ptrs_;
+
         std::vector<SceneNode*> normals_ptrs_;
 
         std::vector<int> line_indices_;
@@ -115,6 +140,11 @@ namespace GLOO {
         bool wireframe_on_;
         bool normals_on_;
         bool ball_collision_;
+
+        int texture_index_ = 0;
+        std::vector<std::string> diffuse_maps_{"stone.png", "14.png", "argyle.png"};
+        std::vector<std::string> normal_maps_{ "stone_normal.png", "14_NORM.png", "argyle_norm.png" };
+
 
 
     };

@@ -32,6 +32,22 @@ void VertexObject::UpdateNormals(std::unique_ptr<NormalArray> normals) {
   vertex_array_->UpdateNormals(*normals_);
 }
 
+void VertexObject::UpdateTangents(std::unique_ptr<TangentArray> tangents) {
+    if (tangents_ == nullptr) {
+        vertex_array_->CreateTangentBuffer();
+    }
+    tangents_ = std::move(tangents);
+    vertex_array_->UpdateTangents(*tangents_);
+}
+
+void VertexObject::UpdateBitangents(std::unique_ptr<BitangentArray> bitangents) {
+    if (bitangents_ == nullptr) {
+        vertex_array_->CreateBitangentBuffer();
+    }
+    bitangents_ = std::move(bitangents);
+    vertex_array_->UpdateTangents(*bitangents_);
+}
+
 void VertexObject::UpdateColors(std::unique_ptr<ColorArray> colors) {
   if (colors_ == nullptr) {
     vertex_array_->CreateColorBuffer();
