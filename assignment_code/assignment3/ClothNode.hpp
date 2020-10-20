@@ -53,17 +53,12 @@ namespace GLOO {
         void TogglePins() {
             if (pinned_ == 2) {
                 ReleaseOneCorner();
-                std::cout << "release 1" << std::endl;
                 pinned_ = 1;
             } else if (pinned_ == 1) {
-                std::cout << "release other" << std::endl;
-
                 ReleaseCorners();
                 pinned_ = 0;
             }
             else {
-                std::cout << "fix" << std::endl;
-
                 FixCorners();
                 pinned_ = 2;
             }
