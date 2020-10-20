@@ -266,6 +266,10 @@ namespace GLOO {
 				if (vertex_hit != -1) {
 					current_vertex_hit_ = vertex_hit;
 					dragging_ = true;
+					glm::vec3 dragging_color(.9f, .9f, .3f);
+					collision_ptr_->GetComponentPtr<MaterialComponent>()->GetMaterial().SetAmbientColor(dragging_color);
+					collision_ptr_->GetComponentPtr<MaterialComponent>()->GetMaterial().SetDiffuseColor(dragging_color);
+
 					start_click_pos_ = InputManager::GetInstance().GetCursorPosition();
 					//glm::vec3 prev_pos = state_.positions[current_vertex_hit_];
 					//state_.positions[current_vertex_hit_] = prev_pos + glm::vec3{ 1.f,.0f,.0f };
@@ -277,6 +281,12 @@ namespace GLOO {
 		else {
 			prev_released = true;
 			dragging_ = false;
+			if (collision_ptr_->IsActive()) {
+				glm::vec3 white(1.f, 1.f, 1.f);
+				collision_ptr_->GetComponentPtr<MaterialComponent>()->GetMaterial().SetAmbientColor(white);
+				collision_ptr_->GetComponentPtr<MaterialComponent>()->GetMaterial().SetDiffuseColor(white);
+			}
+			
 		}
 
 		if (!pause_on_) {
