@@ -6,6 +6,8 @@
 #include "PendulumSystem.hpp"
 #include "ForwardEulerIntegrator.hpp"
 #include "gloo/components/TextureComponent.hpp"
+#include "gloo/components/RenderingComponent.hpp"
+#include "Raycaster.hpp"
 #include "gloo/shaders/ShaderProgram.hpp"
 #include "gloo/VertexObject.hpp"
 
@@ -13,7 +15,7 @@ namespace GLOO {
     class ClothNode : public SceneNode {
     public:
         // Constructor
-        ClothNode(float integration_step, IntegratorType integrator_type);
+        ClothNode(float integration_step, IntegratorType integrator_type, Raycaster* raycaster);
         void Update(double delta_time) override;
         bool GetWireFrameState() {
             return wireframe_on_;
@@ -26,7 +28,7 @@ namespace GLOO {
             return normals_on_;
         }
         bool GetWireframeState() {
-            return wireframe_on_;
+            return polygon_is_wire_;
         }
         bool GetWindState() {
             return wind_on_;
@@ -49,13 +51,21 @@ namespace GLOO {
             system_.SetWindStrength(value);
         }
         void TogglePins() {
-            if (pinned_) {
+            if (pinned_ == 2) {
+                ReleaseOneCorner();
+                std::cout << "release 1" << std::endl;
+                pinned_ = 1;
+            } else if (pinned_ == 1) {
+                std::cout << "release other" << std::endl;
+
                 ReleaseCorners();
-                pinned_ = false;
+                pinned_ = 0;
             }
             else {
+                std::cout << "fix" << std::endl;
+
                 FixCorners();
-                pinned_ = true;
+                pinned_ = 2;
             }
         } 
         void ToggleClothNormal() {
@@ -76,6 +86,15 @@ namespace GLOO {
             cloth_mesh_node_->GetComponentPtr<TextureComponent>()->GetTexture().SetNormalMap(normal_maps_[texture_index_]);
 
         }
+        void ToggleWireframePolygonMode() {
+            if (polygon_is_wire_) {
+                cloth_mesh_node_->GetComponentPtr<RenderingComponent>()->SetPolygonMode(PolygonMode::Fill);
+            }
+            else {
+                cloth_mesh_node_->GetComponentPtr<RenderingComponent>()->SetPolygonMode(PolygonMode::Wireframe);
+            }
+            polygon_is_wire_ = !polygon_is_wire_;
+        }
     private:
         void ResetSystem();
         int IndexOf(int row, int col);
@@ -89,8 +108,10 @@ namespace GLOO {
         void UpdateClothTangents();
 
         void FixCorners();
-        void ReleaseCorners() {
+        void ReleaseOneCorner() {
             system_.ReleaseParticle(IndexOf(0, 0));
+        }
+        void ReleaseCorners() {
             system_.ReleaseParticle(IndexOf(0, cloth_size_ - 1));
         }
         glm::vec3 FindTriNorm(glm::vec3 a, glm::vec3 b, glm::vec3 c);
@@ -101,6 +122,10 @@ namespace GLOO {
         void ToggleBall();
         void TogglePause();
         void CreateFrame();
+        int CheckVertexCollision(std::vector<glm::vec3> data);
+        float CheckSphereCollision(glm::vec3 ray, glm::vec3 camera_pos, glm::vec3 center, float radius);
+        void DragCloth(glm::dvec2 pos);
+        glm::dvec2 start_click_pos_;
         ParticleState state_;
         // Set gravity and drag value for system calculations
         glm::vec3 gravity_{ 0.0f, -50.0f, 0.0f };
@@ -127,6 +152,7 @@ namespace GLOO {
         std::shared_ptr<VertexObject> cloth_mesh_;
         SceneNode* cloth_mesh_node_;
         SceneNode* ball_ptr_;
+        SceneNode* collision_ptr_;
         glm::vec3 ball_start_pos_;
         double time_;
         float integration_step_;
@@ -134,7 +160,7 @@ namespace GLOO {
         float rollover_time_;
         float ball_radius_;
         
-        bool pinned_;
+        int pinned_ = 2;
         bool wind_on_;
         bool pause_on_;
         bool wireframe_on_;
@@ -145,8 +171,10 @@ namespace GLOO {
         std::vector<std::string> diffuse_maps_{"stone.png", "14.png", "argyle.png"};
         std::vector<std::string> normal_maps_{ "stone_normal.png", "14_NORM.png", "argyle_norm.png" };
 
-
-
+        bool polygon_is_wire_ = false;
+        bool dragging_ = false;
+        int current_vertex_hit_;
+        Raycaster* raycaster_;
     };
 }  // namespace GLOO
 

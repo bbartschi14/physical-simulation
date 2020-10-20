@@ -15,8 +15,9 @@
 #include <algorithm>
 
 namespace GLOO {
-	ClothNode::ClothNode(float integration_step, IntegratorType integrator_type) : SceneNode() {
+	ClothNode::ClothNode(float integration_step, IntegratorType integrator_type, Raycaster* raycaster) : SceneNode() {
 		// Constructor
+		raycaster_ = raycaster;
 		time_ = 0.0f;
 		integration_step_ = integration_step;
 		integrator_type_ = integrator_type;
@@ -27,7 +28,7 @@ namespace GLOO {
 		pause_on_ = false;
 		wind_on_ = false;
 		ball_collision_ = true;
-		pinned_ = true;
+		pinned_ = 2;
 		ball_start_pos_ = glm::vec3(3.f, -8.f, 7.5f);
 
 		// ---- Cloth Properties ----
@@ -128,6 +129,19 @@ namespace GLOO {
 		ball_ptr_ = ball_node.get();
 		AddChild(std::move(ball_node));
 
+		// Create ray collision mesh
+		auto collision_node = make_unique<SceneNode>();
+		collision_node->CreateComponent<ShadingComponent>(shader_);
+		collision_node->CreateComponent<RenderingComponent>(PrimitiveFactory::CreateSphere(.45f, 4, 4));
+		glm::vec3 collision_color(1.f, 1.f, 1.f);
+		collision_node->CreateComponent<MaterialComponent>(
+			std::make_shared<Material>(Material::GetDefault()));
+		collision_node->GetComponentPtr<MaterialComponent>()->GetMaterial().SetDiffuseColor(collision_color);
+		collision_node->GetComponentPtr<MaterialComponent>()->GetMaterial().SetAmbientColor(collision_color);
+		collision_node->GetComponentPtr<RenderingComponent>()->SetPolygonMode(PolygonMode::Wireframe);
+		collision_ptr_ = collision_node.get();
+		AddChild(std::move(collision_node));
+
 		// Create cloth mesh
 		cloth_mesh_ = std::make_shared<VertexObject>();
 		auto mesh_node = make_unique<SceneNode>();
@@ -180,7 +194,6 @@ namespace GLOO {
 		
 
 		auto& rc = mesh_node->CreateComponent<RenderingComponent>(cloth_mesh_);
-
 		rc.SetDrawMode(DrawMode::Triangles);
 		cloth_mesh_node_ = mesh_node.get();
 
@@ -190,6 +203,27 @@ namespace GLOO {
 	}
 
 	void ClothNode::Update(double delta_time) {
+		if (!dragging_) {
+			auto ray_data = raycaster_->GetCameraPosCurrentRay();
+			int current_vertex_hit_ = CheckVertexCollision(ray_data);
+			if (current_vertex_hit_ != -1) {
+				collision_ptr_->SetActive(true);
+				collision_ptr_->GetTransform().SetPosition(state_.positions[current_vertex_hit_]);
+			}
+			else {
+				collision_ptr_->SetActive(false);
+			}
+		}
+		else {
+			if (current_vertex_hit_ != -1) {
+				//::cout << "Current vertex" << current_vertex_hit_ << std::endl;
+				collision_ptr_->GetTransform().SetPosition(state_.positions[current_vertex_hit_]);
+				DragCloth(InputManager::GetInstance().GetCursorPosition());
+			}
+		}
+		
+
+
 		static bool prev_released = true;
 		if (InputManager::GetInstance().IsKeyPressed('R')) {
 			if (prev_released) {
@@ -217,16 +251,32 @@ namespace GLOO {
 		}
 		else if (InputManager::GetInstance().IsKeyPressed('T')) {
 			if (prev_released) {
-				if (normals_on_) { ToggleNormals();  TogglePause(); }
-				ToggleWireframe();
-				DrawWireframe();
-				TogglePause();
-				
+				ToggleWireframePolygonMode();
+			}
+			prev_released = false;
+		}
+		else if (InputManager::GetInstance().IsLeftMousePressed()) {
+			if (prev_released) {
+				auto ray_data = raycaster_->GetCameraPosCurrentRay(); 
+				//std::cout << "Ray: " << ray_data[1][0] << " " << ray_data[1][1] << " " << ray_data[1][2] << " " << std::endl;
+				//std::cout << "Camera: " << ray_data[0][0] << " " << ray_data[0][1] << " " << ray_data[0][2] << " " << std::endl;
+
+				//raycaster_->CastRay(ray_data[1]);
+				int vertex_hit = CheckVertexCollision(ray_data);
+				if (vertex_hit != -1) {
+					current_vertex_hit_ = vertex_hit;
+					dragging_ = true;
+					start_click_pos_ = InputManager::GetInstance().GetCursorPosition();
+					//glm::vec3 prev_pos = state_.positions[current_vertex_hit_];
+					//state_.positions[current_vertex_hit_] = prev_pos + glm::vec3{ 1.f,.0f,.0f };
+					//state_.velocities[current_vertex_hit_] += (state_.positions[current_vertex_hit_] - prev_pos);
+				}
 			}
 			prev_released = false;
 		}
 		else {
 			prev_released = true;
+			dragging_ = false;
 		}
 
 		if (!pause_on_) {
@@ -269,7 +319,7 @@ namespace GLOO {
 						}
 					}
 				}
-				if (!pinned_) {
+				if (pinned_ < 3) {
 					float eps = .05f;
 					for (int j = 0; j < state_.positions.size(); j++) {
 						float height = state_.positions[j].y;
@@ -296,6 +346,72 @@ namespace GLOO {
 		}
 		
 	}
+
+	void ClothNode::DragCloth(glm::dvec2 pos) {
+		glm::vec3 distance = glm::vec3{ pos.x- start_click_pos_.x, start_click_pos_.y - pos.y   , 0.f};
+		float delta = 40.0f;
+
+		if (distance.x != 0.f || distance.y != 0.f) {
+			glm::vec3 prev_pos = state_.positions[current_vertex_hit_];
+			state_.positions[current_vertex_hit_] = prev_pos + distance / delta;
+			state_.velocities[current_vertex_hit_] += (state_.positions[current_vertex_hit_] - prev_pos);
+			start_click_pos_ = glm::dvec2(pos.x, pos.y);
+		}
+
+
+	}
+	int ClothNode::CheckVertexCollision(std::vector<glm::vec3> data) {
+		int final_vert = -1;
+		bool collision_found = false;
+		std::vector<float> hit_distances;
+		std::vector<glm::vec3> centers_hit;
+		std::vector<int> vert_indices;
+		int vert_index = 0;
+		for (glm::vec3 center : state_.positions) {
+			float dist = CheckSphereCollision(data[1], data[0], center, cloth_width_/cloth_size_);
+			if (dist >= 0) {
+				collision_found = true;
+				hit_distances.push_back(dist);
+				centers_hit.push_back(center);
+				vert_indices.push_back(vert_index);
+			}
+			vert_index += 1;
+		}
+		if (collision_found) {
+			//std::cout << "Collision found" << std::endl;
+			float nearest_dist = hit_distances[0];
+			glm::vec3 nearest_center = centers_hit[0];
+			int nearest_vert = vert_indices[0];
+			for (int i = 1; i < hit_distances.size(); i++) {
+				if (hit_distances[i] < nearest_dist) {
+					nearest_dist = hit_distances[i];
+					nearest_center = centers_hit[i];
+					nearest_vert = vert_indices[i];
+				}
+			}
+			final_vert = nearest_vert;
+		}
+		//std::cout << "Vert found" << final_vert << std::endl;
+		return final_vert;
+
+
+	}
+
+	float ClothNode::CheckSphereCollision(glm::vec3 ray, glm::vec3 camera_pos, glm::vec3 center, float radius) {
+		glm::vec3 oc = camera_pos - center;
+		float a = glm::dot(ray, ray);
+		float b = 2.0f * glm::dot(oc, ray);
+		float c = glm::dot(oc, oc) - (radius * radius);
+		float discriminant = b * b - 4 * a * c;
+		if (discriminant < 0) {
+			return -1.0f;
+		}
+		else {
+			return (-b - sqrt(discriminant)) / 2.0f * a;
+		}
+
+	}
+
 
 	int ClothNode::IndexOf(int row, int col) {
 		if (row >= cloth_size_ || row < 0 || col >= cloth_size_ || col < 0) return -1;

@@ -43,21 +43,22 @@ vec3 CalcPointLight(vec3 normal, vec3 view_dir);
 vec3 CalcDirectionalLight(vec3 normal, vec3 view_dir);
 
 void main() {
+    float alpha = 1.0;
     vec3 normal = normalize(world_normal);
     vec3 view_dir = normalize(camera_position - world_position);
 
     frag_color = vec4(0.0);
 
     if (ambient_light.enabled) {
-        frag_color += vec4(CalcAmbientLight(), 1.0);
+        frag_color += vec4(CalcAmbientLight(), alpha);
     }
     
     if (point_light.enabled) {
-        frag_color += vec4(CalcPointLight(normal, view_dir), 1.0);
+        frag_color += vec4(CalcPointLight(normal, view_dir), alpha);
     }
 
     if (directional_light.enabled) {
-        frag_color += vec4(CalcDirectionalLight(normal, view_dir), 1.0);
+        frag_color += vec4(CalcDirectionalLight(normal, view_dir), alpha);
     }
 }
 

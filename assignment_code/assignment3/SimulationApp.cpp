@@ -18,6 +18,7 @@
 #include <string>
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <Raycaster.hpp>
 
 namespace GLOO {
 SimulationApp::SimulationApp(const std::string& app_name,
@@ -43,6 +44,7 @@ void SimulationApp::SetupScene() {
   auto camera_node = make_unique<ArcBallCameraNode>();
   camera_node->GetTransform().SetPosition(glm::vec3(0.0f, 0.0f, -3.0f));
   scene_->ActivateCamera(camera_node->GetComponentPtr<CameraComponent>());
+  auto camera_ptr = camera_node.get();
   root.AddChild(std::move(camera_node));
 
   root.AddChild(make_unique<AxisNode>('A'));
@@ -73,7 +75,12 @@ void SimulationApp::SetupScene() {
   pendulum_node->GetTransform().SetPosition(glm::vec3(-7.5f, 0.0f, 0.0f));
   root.AddChild(std::move(pendulum_node));
 
-  auto cloth_node = make_unique<ClothNode>(integration_step_, integrator_type_);
+
+  auto raycaster_node = make_unique<Raycaster>(scene_.get(), camera_ptr);
+  auto raycast_node = raycaster_node.get();
+  root.AddChild(std::move(raycaster_node));
+
+  auto cloth_node = make_unique<ClothNode>(integration_step_, integrator_type_, raycast_node);
   cloth_node_ = cloth_node.get();
   root.AddChild(std::move(cloth_node));
 
@@ -93,6 +100,8 @@ void SimulationApp::SetupScene() {
   ground_node->GetTransform().SetScale(glm::vec3(100.0f));
 
   root.AddChild(std::move(ground_node));
+
+  
 }
 
 void SimulationApp::DrawGUI() {

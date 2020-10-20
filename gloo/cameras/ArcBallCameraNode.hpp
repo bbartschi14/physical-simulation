@@ -9,7 +9,7 @@ class CameraComponent;
 class ArcBallCameraNode : public SceneNode {
  public:
   ArcBallCameraNode(float fov = 45.f,
-                    float aspect = 0.75f,
+                    float aspect = 1.6f,
                     float distance = 2.f);
   void Update(double delta_time) override;
 
